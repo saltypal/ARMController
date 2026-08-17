@@ -92,7 +92,7 @@ void loop() {
     uint16_t raw_angle = as5600.getRawAngle();
 
     // Calculate angle in degrees (0.0 to 360.0)
-    float degrees = (raw_angle * 360.0) / 4096.0;
+    float degrees = (raw_angle * 360.0) / 4096.0; 
 
     // Print formatted output to Serial Monitor
     Serial.print("Encoder Raw (12-bit): ");

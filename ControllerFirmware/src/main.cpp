@@ -56,7 +56,8 @@
 // 2. GLOBAL STATE VARIABLES
 // ----------------------------------------------------------------------------
 
-Adafruit_AS5600 as5600;
+Adafruit_AS5600 as5600; // object representing the sensor
+
 rcl_publisher_t publisher;
 std_msgs__msg__Int32 msg;
 rclc_support_t support;
@@ -65,39 +66,6 @@ rcl_node_t node;
 
 unsigned long last_publish_time = 0;
 
-// ----------------------------------------------------------------------------
-// 3. HELPER FUNCTIONS
-// ----------------------------------------------------------------------------
-
-/**
- * @brief Infinite error loop blinks onboard LED rapidly (100ms) on failure.
- */
-void error_loop() {
-  while (1) {
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
-  }
-}
-
-/**
- * @brief Initializes I2C and Adafruit AS5600 encoder with hardware check.
- */
-void setupEncoder() {
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-
-  // Verify AS5600 presence on address 0x36
-  if (!as5600.begin(AS5600_DEFAULT_ADDR, &Wire)) {
-    error_loop(); // Enter failsafe blink loop if sensor hardware not found
-  }
-}
-
-/**
- * @brief Reads 12-bit raw angle (0-4095) from AS5600 encoder.
- */
-int32_t readEncoderValue() {
-  uint16_t raw_angle = as5600.getRawAngle();
-  return (int32_t)raw_angle;
-}
 
 /**
  * @brief Initializes micro-ROS transport, Node, and Publisher.
@@ -115,20 +83,43 @@ void setupMicroROS() {
       ROS_TOPIC_NAME));
 }
 
+
+void error_loop() {
+  while (1) {
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    delay(100);
+  }
+}
+
 /**
- * @brief Reads AS5600 raw angle and publishes it to ROS 2 topic `/Encoder_one`.
+ * @brief Initializes I2C and Adafruit AS5600 encoder with hardware check.
  */
+
+void setupEncoder() {
+
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN); // begins the i2c communication
+
+  // Verify AS5600 presence on address 0x36
+  if (!as5600.begin(AS5600_DEFAULT_ADDR, &Wire)) { 
+ 
+    // "Use the I²C bus represented by Wire, and communicate with the device whose I²C address is 0x36."
+ 
+    error_loop(); // Enter failsafe blink loop if sensor hardware not found
+  }
+}
+
+int32_t readEncoderValue() {
+  uint16_t raw_angle = as5600.getRawAngle(); // Reads 12-bit raw angle (0-4095) from AS5600 encoder.
+  return (int32_t)raw_angle;
+}
+
 void publishEncoderValue() {
   int32_t val = readEncoderValue();
-  msg.data = val;
-
+  msg.data = val; // Reads AS5600 raw angle and publishes it to ROS 2 topic `/Encoder_one`.
   rcl_ret_t pub_status = rcl_publish(&publisher, &msg, NULL);
   (void)pub_status;
 }
 
-// ----------------------------------------------------------------------------
-// 4. MAIN SETUP AND LOOP
-// ----------------------------------------------------------------------------
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
@@ -136,10 +127,8 @@ void setup() {
 
   // 1. Initialize Adafruit AS5600 hardware
   setupEncoder();
-
   // 2. Initialize micro-ROS communications & publisher
   setupMicroROS();
-
   // Turn LED solid HIGH to signal successful connection
   digitalWrite(LED_PIN, HIGH);
 }
